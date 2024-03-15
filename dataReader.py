@@ -328,6 +328,23 @@ dataset = get_dataset(
 inputs, labels = next(iter(dataset))
 
 
+def display_dataset(dataset):
+    for i, (inputs, labels) in enumerate(dataset):
+        print(f"Batch: {i + 1}")
+        print("Inputs:")
+        print(f"Shape: {inputs.shape}")
+        print(f"Min: {tf.reduce_min(inputs).numpy()}")
+        print(f"Max: {tf.reduce_max(inputs).numpy()}")
+        print(f"Mean: {tf.reduce_mean(inputs).numpy()}")
+        print(f"Std: {tf.math.reduce_std(inputs).numpy()}")
+        print("Labels:")
+        print(f"Shape: {labels.shape}")
+        print(f"Min: {tf.reduce_min(labels).numpy()}")
+        print(f"Max: {tf.reduce_max(labels).numpy()}")
+        print(f"Mean: {tf.reduce_mean(labels).numpy()}")
+        print(f"Std: {tf.math.reduce_std(labels).numpy()}")
+        print("------------------------")
+
 def useME():
     TITLES = [
         'Elevation',
@@ -376,46 +393,29 @@ def print_tfrecord(file_path):
 
     # Define the feature structure for the tf.train.Example messages
     feature_description = {
-        feature: tf.io.FixedLenFeature([], tf.float32) for feature in INPUT_FEATURES + OUTPUT_FEATURES
-    }
-
-def print_tfrecord_obsoloete(file_path):
-    raw_dataset = tf.data.TFRecordDataset(file_path)
-
-    # Define the feature structure for the tf.train.Example messages
-    feature_description = {
-        feature: tf.io.FixedLenFeature([], tf.float32) for feature in INPUT_FEATURES + OUTPUT_FEATURES
+        'NDVI': tf.io.FixedLenFeature([], tf.float32),
+        'tmmn': tf.io.FixedLenFeature([], tf.float32),
+        'elevation': tf.io.FixedLenFeature([], tf.float32),
+        'population': tf.io.FixedLenFeature([], tf.float32),
+        'FireMask': tf.io.FixedLenFeature([], tf.float32),
+        'vs': tf.io.FixedLenFeature([], tf.float32),
+        'pdsi': tf.io.FixedLenFeature([], tf.float32),
+        'pr': tf.io.FixedLenFeature([], tf.float32),
+        'tmmx': tf.io.FixedLenFeature([], tf.float32),
+        'sph': tf.io.FixedLenFeature([], tf.float32),
+        'th': tf.io.FixedLenFeature([], tf.float32),
+        'PrevFireMask': tf.io.FixedLenFeature([], tf.float32),
+        'erc': tf.io.FixedLenFeature([], tf.float32),
     }
 
     for raw_record in raw_dataset:
-        example = tf.io.parse_single_example(raw_record, feature_description)
-        for feature_name in feature_description.keys():
-            if feature_name in example:
-                print(f"{feature_name}: {example[feature_name].numpy()}")
-            else:
-                print(f"{feature_name}: Not present in this record")
-
-def print_tfrecord(file_path):
-    raw_dataset = tf.data.TFRecordDataset(file_path)
-
-    for raw_record in raw_dataset:
-        # Parse the Example protobuf without a feature description
-        example = tf.train.Example()
-        example.ParseFromString(raw_record.numpy())
-        feature_keys = list(example.features.feature.keys())
-
-        # Define the feature structure for the tf.train.Example messages
-        feature_description = {
-            feature: tf.io.FixedLenFeature([], tf.float32) for feature in feature_keys
-        }
-
-        # Parse the Example protobuf again with the correct feature description
-        example = tf.io.parse_single_example(raw_record, feature_description)
-        for feature_name, value in example.items():
-            print(f"{feature_name}: {value.numpy()}")
-
-
-
+        try:
+            # Parse the Example protobuf with the correct feature description
+            example = tf.io.parse_single_example(raw_record, feature_description)
+            for feature_name, value in example.items():
+                print(f"{feature_name}: {value.numpy()}")
+        except tf.errors.InvalidArgumentError:
+            print("Skipping a record due to parsing error.")
 
 
 def print_tfrecord_keys(file_path):
@@ -425,4 +425,3 @@ def print_tfrecord_keys(file_path):
         example = tf.train.Example()
         example.ParseFromString(raw_record.numpy())
         print(list(example.features.feature.keys()))
-
