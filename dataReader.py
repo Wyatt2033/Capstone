@@ -296,7 +296,7 @@ def get_dataset(file_pattern: Text, data_size: int, sample_size: int,
       described in the constants, and with the shapes determined from the input
       parameters to this function.
     """
-    if (clip_and_normalize and clip_and_rescale):
+    if clip_and_normalize and clip_and_rescale:
         raise ValueError('Cannot have both normalize and rescale.')
     dataset = tf.data.Dataset.list_files(file_pattern)
     dataset = dataset.interleave(
@@ -312,19 +312,21 @@ def get_dataset(file_pattern: Text, data_size: int, sample_size: int,
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
     return dataset
 
+
 dataset = get_dataset(
-      file_pattern,
-      data_size=64,
-      sample_size=32,
-      batch_size=100,
-      num_in_channels=12,
-      compression_type=None,
-      clip_and_normalize=False,
-      clip_and_rescale=False,
-      random_crop=True,
-      center_crop=False)
+    file_pattern,
+    data_size=64,
+    sample_size=32,
+    batch_size=100,
+    num_in_channels=12,
+    compression_type=None,
+    clip_and_normalize=False,
+    clip_and_rescale=False,
+    random_crop=True,
+    center_crop=False)
 
 inputs, labels = next(iter(dataset))
+
 
 def useME():
     TITLES = [
@@ -367,3 +369,27 @@ def useME():
                 plt.imshow(labels[i, :, :, 0], cmap=CMAP, norm=NORM)
             plt.axis('off')
     plt.tight_layout()
+
+
+def print_tfrecord(file_path):
+    raw_dataset = tf.data.TFRecordDataset(file_path)
+
+    # Define the feature structure for the tf.train.Example messages
+    feature_description = {
+        feature: tf.io.FixedLenFeature([], tf.float32) for feature in INPUT_FEATURES + OUTPUT_FEATURES
+    }
+
+    for raw_record in raw_dataset:
+        example = tf.io.parse_single_example(raw_record, feature_description)
+        for feature_name, value in example.items():
+            print(f"{feature_name}: {value.numpy()}")
+
+
+def print_tfrecord_keys(file_path):
+    raw_dataset = tf.data.TFRecordDataset(file_path)
+
+    for raw_record in raw_dataset.take(10):
+        example = tf.train.Example()
+        example.ParseFromString(raw_record.numpy())
+        print(list(example.features.feature.keys()))
+
