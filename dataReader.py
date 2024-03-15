@@ -379,7 +379,7 @@ def print_tfrecord(file_path):
         feature: tf.io.FixedLenFeature([], tf.float32) for feature in INPUT_FEATURES + OUTPUT_FEATURES
     }
 
-def print_tfrecord(file_path):
+def print_tfrecord_obsoloete(file_path):
     raw_dataset = tf.data.TFRecordDataset(file_path)
 
     # Define the feature structure for the tf.train.Example messages
@@ -394,6 +394,26 @@ def print_tfrecord(file_path):
                 print(f"{feature_name}: {example[feature_name].numpy()}")
             else:
                 print(f"{feature_name}: Not present in this record")
+
+def print_tfrecord(file_path):
+    raw_dataset = tf.data.TFRecordDataset(file_path)
+
+    for raw_record in raw_dataset:
+        # Parse the Example protobuf without a feature description
+        example = tf.train.Example()
+        example.ParseFromString(raw_record.numpy())
+        feature_keys = list(example.features.feature.keys())
+
+        # Define the feature structure for the tf.train.Example messages
+        feature_description = {
+            feature: tf.io.FixedLenFeature([], tf.float32) for feature in feature_keys
+        }
+
+        # Parse the Example protobuf again with the correct feature description
+        example = tf.io.parse_single_example(raw_record, feature_description)
+        for feature_name, value in example.items():
+            print(f"{feature_name}: {value.numpy()}")
+
 
 
 
